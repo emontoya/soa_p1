@@ -1,0 +1,43 @@
+# @configure_input@
+# Package-specific substitution variables
+package 	= @PACKAGE_NAME@
+version 	= @PACKAGE_VERSION@
+tarname 	= @PACKAGE_TARNAME@
+distdir 	= $(tarname)-$(version)
+
+# Prefix-specific substitution variables
+prefix 		= @prefix@
+exec_prefix 	= @exec_prefix@
+bindir 		= @bindir@
+
+# VPATH-related substitution variables
+srcdir = @srcdir@
+VPATH = @srcdir@
+
+
+CFLAGS		?= -g -O0
+
+all: $(package)
+
+$(package): main.c
+	$(CC) $(CFLAGS) -o $@ main.c
+
+Makefile: Makefile.in ../config.status
+	cd .. && ./config.status src/$@
+
+../config.status: ../configure
+	cd .. && ./config.status --recheck
+
+clean:
+	-rm -f $(package) >/dev/null 2>&1
+	-rm -f *.o >/dev/null 2>&1
+	-rm -f Makefile >/dev/null 2>&1
+
+install:
+	install -d $(DESTDIR)$(bindir)
+	install -m 0755 $(package) $(DESTDIR)$(bindir)
+
+uninstall:
+	-rm $(DESTDIR)$(bindir)/$(package)
+
+.PHONY: all clean install uninstall

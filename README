@@ -4,3 +4,16 @@ Authors:
 -Leandro Cordero
 
 The specification could be found in file Proyecto1.pdf.
+
+
+Steps to build the project for the first time:
+1- Execute ./autogen.sh script
+2- Execute ./configure
+3- Execute ./make
+
+You have additional make options:
+- make clean: Remove any generated file
+- make install: Install the executable
+- make uninstall: Uninstall de executable
+
+Note: install and uninstall must be run as root (sudo make ...)
