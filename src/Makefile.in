@@ -15,12 +15,15 @@ srcdir = @srcdir@
 VPATH = @srcdir@
 
 
-CFLAGS		?= -g -O0
+CFLAGS		?= -g -O0 -Wall
 
 all: $(package)
 
-$(package): main.c
-	$(CC) $(CFLAGS) -o $@ main.c
+includes	= $(wildcard ../include/*.h)
+sources		= $(wildcard *.c)
+
+$(package): ${sources} ${includes}
+	$(CC) -I. -I$(srcdir) -I.. -I../include $(CFLAGS) -o $@ ${sources}
 
 Makefile: Makefile.in ../config.status
 	cd .. && ./config.status src/$@

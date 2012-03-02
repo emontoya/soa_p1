@@ -14,11 +14,11 @@ struct ui_mthread {
 /**
  * To notify that the ui_mthread state has changed
  */
-typedef void (*ui_on_updated)(struct ui_mthread * thread);
+typedef void (* ui_on_updated)(struct ui_mthread * thread);
 
 /**
  * To notify that the checked state for a ui_mthread has changed 
  */
-typedef void (*ui_on_checked_state_changed)(int id, int checked);
+typedef void (* ui_on_checked_state_changed)(int id, int checked);
 
 #endif

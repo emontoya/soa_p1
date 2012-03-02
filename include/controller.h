@@ -6,4 +6,8 @@
  */
 void controller_init();
 
+/**
+ * Start the thread simulation
+ */
+void controller_start();
 #endif
