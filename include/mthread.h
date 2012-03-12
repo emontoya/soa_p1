@@ -1,7 +1,13 @@
 #ifndef MTHREAD_H
 #define MTHREAD_H
 
-#include <setjmp.h>
+#include <ucontext.h>
+
+/*
+ * Callback function definition.
+ * This function is executed when a thread end
+ */
+typedef void (* mthread_callback)();
 
 /**
  * Structure to handle the information regarding a thread
@@ -9,21 +15,34 @@
 struct mthread{
         int id;
         double cvalue;
-        jmp_buf *env;   // To store the thread state
+        ucontext_t *env;   // To store the thread state
 };
 
-/**
+/*
+ * Initialize the environment to create and destroy threads
+ * params:
+ *      func = callback function to handle thread ended
+ */
+void mthread_init_environment(mthread_callback func);
+
+/*
+ * Release the environment created to create and destroy threads
+ */
+void mthread_destroy_environment();
+
+/*
  * Initializes the threat structure
  */
-struct mthread * mthread_init(struct mthread * thread, int id); 
+struct mthread * mthread_create(int id, void (*func)()); 
 
-/**
- * Frees the data holded by the mthread structure
+/*
+ * Destroy the thread specific information.
  */
-struct mthread * mthread_free_data(struct mthread * thread);
+struct mthread * mthread_free(struct mthread * thread);
 
-/**
- * Pointer to the thread function
+/*
+ * Run the thread
  */
-typedef void (* mthread_funct_ptr)(struct mthread * thread); 
+void mthread_run(struct mthread *thread);
+
 #endif
