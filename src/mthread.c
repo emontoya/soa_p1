@@ -49,14 +49,25 @@ void mthread_destroy_environment(){
         // TODO: Add destroy logic if needed;
 }
 
-struct mthread * mthread_create(int id, void (*func)()){ 
+
+struct mthread * mthread_new( int id_p, int ticketc_p, int workc_p){
+        // TODO: Add validations
+        struct mthread *thread = malloc(sizeof(struct mthread));
+
+        thread->id = id_p;
+        thread->ticketc = ticketc_p;
+        thread->workc = workc_p;
+        thread->fticket= 0;
+        thread->cvalue = 0;
+
+        return thread;
+}
+
+struct mthread * mthread_create(void (*func)()){ 
         // TODO: Add validations
 
         struct mthread *thread = malloc(sizeof(struct mthread));
         assert(thread != NULL);
-
-        thread->id = id;
-        thread->cvalue = 0;
 
         // Create the stack for this thread
         char *stack = malloc(MTHREAD_STACK_SIZE * sizeof(char));

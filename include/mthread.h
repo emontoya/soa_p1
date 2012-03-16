@@ -13,9 +13,12 @@ typedef void (* mthread_callback)();
  * Structure to handle the information regarding a thread
  */
 struct mthread{
-        int id;
-        double cvalue;
+        int id; // thread identifyer (consecutive)
+        double cvalue; // Current calculated value (We add this here for simplicity)
         ucontext_t *env;   // To store the thread state
+        int ticketc; // Tickets quantity
+        int fticket; // Accumulated ticket sum or firts ticket number
+        int workc;  // Assigned work; 
 };
 
 /*
@@ -31,9 +34,14 @@ void mthread_init_environment(mthread_callback func);
 void mthread_destroy_environment();
 
 /*
- * Initializes the threat structure
+ * Create and initialize a thread
  */
-struct mthread * mthread_create(int id, void (*func)()); 
+struct mthread * mthread_new(int id_p, int ticketc_p, int workc_p);
+
+/*
+ * Create the environment to execute the thread
+ */
+struct mthread * mthread_create(void (*func)()); 
 
 /*
  * Destroy the thread specific information.

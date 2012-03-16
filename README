@@ -17,3 +17,22 @@ You have additional make options:
 - make uninstall: Uninstall de executable
 
 Note: install and uninstall must be run as root (sudo make ...)
+
+This application reads the configuration from file "config.txt"
+that should be located in the executable directory. The first line in this file
+should contain two integer values: The first, is the value indicating whether
+we use preemptive schedulling or not, and the second one is the time slice for
+each process to run or the work factor to perform for each thread before
+releasing the processor. The subsequent lines in the file represents threads
+configuration. In this lines, the first value indicates de tickets assigned to
+this thread and the second is the total work to perform for this thread.
+Here is a config file example:
+config.txt
+1 150
+50 20
+10 50
+32 25
+100 50
+50 20
+
+In this case we use a preemptive schedulling with a quantum of 150 ms. 
