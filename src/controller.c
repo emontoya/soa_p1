@@ -118,24 +118,8 @@ void thread_ended(struct mthread * thread){
 }
 
 void controller_alarm_handler(int sig){
-        // TODO: Implement alarm logic
-        /*
-        if (!started){
-                started = 1;
-                current = threads[0];
-                setcontext(threads[0]->env);
-        }
-        
-        int c = current->id;
-        int next = 2 - (c + 1);
-
-        printf("Current = [%d]; next = [%d]\n", c, next);
-
-        if (!finished && !finisheds[next]){
-                current = threads[next];
-                swapcontext(threads[c]->env, threads[next]->env); 
-        }
-        */
+        printf("Alarm triggered*****************************************\n");
+        yield();
 }
 
 static void set_timer(int quantum){
@@ -151,6 +135,7 @@ static void set_timer(int quantum){
         timer_interval.it_interval = timer_slice;
         act.sa_handler = controller_alarm_handler;
         sigaction (SIGALRM, &act, 0);
+        printf("Alarm configured*****************************************\n");
 }
 
 static void init_threads(){
@@ -193,7 +178,7 @@ void controller_init(){
         // Initialize the threads
         init_threads();
         
-        if (!cinfo->is_preemptive){
+        if (cinfo->is_preemptive){
                 // Initialize the timer
                 set_timer(cinfo->quantum);
         }
@@ -205,6 +190,7 @@ void controller_start(){
         printf("Starting to run threads\n");
 
         if (cinfo->is_preemptive){
+                printf("Starting the alarm*****************************************\n");
                 // Start timer
                 setitimer(ITIMER_REAL, &timer_interval, NULL);
         }
