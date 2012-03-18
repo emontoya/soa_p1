@@ -9,6 +9,8 @@ struct mthread_list {
         int count;
         // Threads array
         struct mthread **threads;
+        // Index to thread id
+        int *thread_indexs;
 };
 
 /*

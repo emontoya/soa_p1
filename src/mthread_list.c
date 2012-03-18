@@ -8,6 +8,7 @@ struct mthread_list * mthread_list_create(){
 
         list = (struct mthread_list *)malloc(sizeof(struct mthread_list)); 
         list->threads = malloc(MTHREAD_MAX * sizeof(struct mthread *));
+        list->thread_indexs = malloc(MTHREAD_MAX * sizeof(int));
         list->count = 0;
 
         return list;
@@ -24,6 +25,9 @@ void mthread_list_destroy(struct mthread_list * list){
 
         // Destroy list threads
         free(list->threads);
+
+        // Destroy thread index
+        free(list->thread_indexs);
 
         // destroy the list
         free(list);

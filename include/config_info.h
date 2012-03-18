@@ -9,5 +9,11 @@ struct config_info{
 
         // Structure containing the threads info 
         struct mthread_list *thread_list;
+
+        // Current thread
+        struct mthread *current;
+
+        // Assigned tickets 
+        unsigned long long tickets;
 };
 #endif

@@ -1,7 +1,7 @@
 #ifndef MTHREAD_H
 #define MTHREAD_H
 
-#include <ucontext.h>
+#include <setjmp.h>
 
 /*
  * Callback function definition.
@@ -14,8 +14,9 @@ typedef void (* mthread_callback)();
  */
 struct mthread{
         int id; // thread identifyer (consecutive)
-        double cvalue; // Current calculated value (We add this here for simplicity)
-        ucontext_t *env;   // To store the thread state
+        long double cvalue; // Current calculated value (We add this here for simplicity)
+        //ucontext_t *env;   // To store the thread state
+        jmp_buf *env;   // To store the thread state
         int ticketc; // Tickets quantity
         int fticket; // Accumulated ticket sum or firts ticket number
         int workc;  // Assigned work; 

@@ -13,29 +13,31 @@
  * Stack for the function in charge of releasing
  * allocated threads
  */
-static char mthread_ended_stack[MTHREAD_ENDED_STACK_SIZE];
+//static char mthread_ended_stack[MTHREAD_ENDED_STACK_SIZE];
 
 /*
  * Context variable to handle the thread ended
  */
-ucontext_t mthread_ended_env;
+//ucontext_t mthread_ended_env;
 
 /*
  * Context used as a reference for swapping
  * to the thread context
  */
-ucontext_t mthread_env;
+//ucontext_t mthread_env;
 
 void mthread_ended(struct mthread * thread){
+/*
         assert(thread != NULL); 
 
         free(thread->env->uc_stack.ss_sp);// TODO: Confirm that the pointer hasn't changed
         free(thread->env);
-
+*/
 
 }
 
 void mthread_init_environment(mthread_callback func){
+/*
         getcontext(&mthread_ended_env);
         mthread_ended_env.uc_stack.ss_sp = mthread_ended_stack;
         mthread_ended_env.uc_stack.ss_size = MTHREAD_ENDED_STACK_SIZE;
@@ -43,6 +45,7 @@ void mthread_init_environment(mthread_callback func){
         makecontext(&mthread_ended_env, func, 0);
 
         getcontext(&mthread_env);
+*/
 }
 
 void mthread_destroy_environment(){
@@ -69,6 +72,7 @@ struct mthread * mthread_create(void (*func)()){
         struct mthread *thread = malloc(sizeof(struct mthread));
         assert(thread != NULL);
 
+        /*
         // Create the stack for this thread
         char *stack = malloc(MTHREAD_STACK_SIZE * sizeof(char));
         
@@ -77,16 +81,17 @@ struct mthread * mthread_create(void (*func)()){
 
         // Initialize the thread context
         getcontext(thread->env);
-
+        */
         /*
          * Changing the thread context to use the new stack
          * and to point to the function
          */
+        /*
         thread->env->uc_stack.ss_sp = stack;
         thread->env->uc_stack.ss_size = MTHREAD_STACK_SIZE * sizeof(char);
         thread->env->uc_link = &mthread_ended_env; // Context for thread ended
         makecontext(thread->env, func, 0);
-        
+        */
         // Return the created thread
         return thread;
 }
@@ -94,13 +99,14 @@ struct mthread * mthread_create(void (*func)()){
 void mthread_run(struct mthread *thread){
         // TODO: Add validations
 
-        swapcontext(&mthread_env, thread->env);
+        //swapcontext(&mthread_env, thread->env);
 }
 
 struct mthread * mthread_free(struct mthread * thread){
         assert(thread != NULL); 
-
+        /*
         free(thread->env->uc_stack.ss_sp);// TODO: Confirm that the pointer hasn't changed
+        */
         free(thread->env);
 
         return thread;

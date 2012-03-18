@@ -2,6 +2,8 @@
 #include "mthread.h"
 #include "config_handler.h"
 #include "mthread_list.h"
+#include "iinterface.h"
+#include "scheduler.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,12 +11,12 @@
 #include <signal.h>
 #include <sys/time.h>
 #include <string.h>
+#include <setjmp.h>
 
-// Running Thread
-struct mthread *current;
+#define WORKING_UNIT 50
 
-// Threads list
-struct mthread **threads;
+// Finished jump
+jmp_buf wfinished;
 
 // Configuration info
 struct config_info * cinfo;
@@ -28,14 +30,61 @@ int started = 0;
 struct itimerval timer_interval;
 
 /*
- * Function to calculate the value
+ * Function for a thread to release the processor
  */
-void calc_function(){
-        int i = 0;
-        while (i < 200){
-                printf("calc_funct(%i)\n", i);
-                usleep(10000);
-                i++;
+void yield(){
+        if (0 == sigsetjmp(*(cinfo->current->env), 1)){
+                // First call
+                struct mthread * next = scheduler_next(cinfo);
+
+                if (next != NULL){ // Next thread founded
+                        cinfo->current = next;
+                        siglongjmp(*(next->env), 1);
+                } else { // We Finished processing
+                        // Jump to the finished point
+                        siglongjmp(wfinished, 1);
+                }
+        }
+        
+
+}
+
+/*
+ * Function to aproximate the PI value:
+ * PI =  4 * arctan(1)  
+ * = 4 * (1 - 1/3 + 1/5 - 1/7 + 1/9 - 1/11 ... + (((-1)^n)/(2n + 1)))
+ */
+void calc_function(int thread_id){
+        unsigned long long i = 0;
+        long double pi = 0;
+        long double divd = 1;
+        long double sig = 1;
+
+        struct mthread * thread = cinfo->thread_list->threads[cinfo->thread_list->thread_indexs[thread_id]];
+        
+        unsigned long long w = 0;
+        int k = 0;
+
+        while (w < thread->workc){
+                for (k = 0; k < WORKING_UNIT; k++){
+                        pi += sig * ((long double)1/divd); 
+                        thread->cvalue = pi * (long double)4;
+                        divd += 2;
+                        sig *= -1;
+                        i++;
+                        
+                        /*
+                         * Yield the processor if not preemtive scheduling and
+                         * the allowed portion of the work is done.
+                         * Note: We could code this in different way to prevent
+                         * checking this condition every time but, coded this
+                         * way is simple to undertand and, any way, the idea is
+                         * to increase the processing load. 
+                         */
+                        if (!cinfo->is_preemptive && i > thread->ticketc * cinfo->quantum){
+                                yield();
+                        }
+                }
         }
 }
 
@@ -46,9 +95,9 @@ void thread_ended(){
         // TODO: Implement thread ending logic        
         printf("Thread finished\n");
 
-        mthread_free(current);
+        mthread_free(cinfo->current);
 
-       finisheds[current->id] = 1;
+       finisheds[cinfo->current->id] = 1;
 
        finished = finisheds[0] + finisheds[1] > 1 ? 1 : 0; 
 
@@ -60,7 +109,7 @@ void thread_ended(){
 int k = 0;
 void controller_alarm_handler(int sig){
         // TODO: Implement alarm logic
-
+        /*
         if (!started){
                 started = 1;
                 current = threads[0];
@@ -76,6 +125,7 @@ void controller_alarm_handler(int sig){
                 current = threads[next];
                 swapcontext(threads[c]->env, threads[next]->env); 
         }
+        */
 }
 
 static void set_timer(int quantum){

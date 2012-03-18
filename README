@@ -36,3 +36,18 @@ config.txt
 50 20
 
 In this case we use a preemptive schedulling with a quantum of 150 ms. 
+
+Calculations:
+-------------
+For calculating 2 arccos(0) we use that arccos(x) = (PI/2) - arcsin(x) for x = 0.
+So 2 arccos(0) = 2 * (PI/2) = PI;
+In order to aproximate PI we use that arctan(1) = PI/4 so:
+PI = 4 * arctan(1).
+
+arctan(1) = 1 - 1/3 + 1/5 - 1/7 + 1/9 - 1/11 ... + (((-1)^n)/(2n + 1))
+see:
+http://www.intmath.com/series-expansion/2-maclaurin-series.php
+http://en.wikipedia.org/wiki/Leibniz_formula_for_pi
+
+This approach is known for its slow convergence but it serves the purpose in
+this exercise
