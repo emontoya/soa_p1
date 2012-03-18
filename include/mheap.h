@@ -7,4 +7,6 @@
  * Adds a new thread to the Heap
  */
 struct mthread * mheap_add(struct mthread_list * list, int tc, int wc);
+
+struct mthread * mheap_remove(struct mthread_list * list, int thread_id);
 #endif

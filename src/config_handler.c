@@ -26,14 +26,15 @@ static void load_config(char *file_name, struct config_info *info){
         sscanf(strtok(buffer, " "), "%d", &(info->is_preemptive));
         sscanf(strtok(NULL, " "), "%d", &(info->quantum));
 
-        int id, tc, wc;
+        int id, tc;
+        long wc;
 
         info->thread_list->count = 0;
 
         // Read each thread configuration
         for(id = 0; id < MTHREAD_MAX && fgets(buffer, CONFIG_BUFFER_SIZE, file); id++){
                 sscanf(strtok(buffer, " "), "%d", &tc);
-                sscanf(strtok(NULL, " "), "%d", &wc);
+                sscanf(strtok(NULL, " "), "%ld", &wc);
 
                 // Add the new thread to the heap
                 mheap_add(info->thread_list, tc, wc);

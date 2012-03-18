@@ -2,50 +2,30 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 // Size for the stack created for each thread
-#define MTHREAD_STACK_SIZE 4096
-
-// Stack for the ended thread context 
-#define MTHREAD_ENDED_STACK_SIZE 1024
+#define MTHREAD_STACK_SIZE 1024*64
 
 /*
- * Stack for the function in charge of releasing
- * allocated threads
+ * Variable to handle the thread creation state
  */
-//static char mthread_ended_stack[MTHREAD_ENDED_STACK_SIZE];
+static jmp_buf mthread_create_env;
 
 /*
- * Context variable to handle the thread ended
+ * Variable to handle the thread ended state
  */
-//ucontext_t mthread_ended_env;
+static jmp_buf *mthread_finished;
 
 /*
- * Context used as a reference for swapping
- * to the thread context
+ * To store the current thread creation
  */
-//ucontext_t mthread_env;
+static struct mthread *current;
 
-void mthread_ended(struct mthread * thread){
-/*
-        assert(thread != NULL); 
-
-        free(thread->env->uc_stack.ss_sp);// TODO: Confirm that the pointer hasn't changed
-        free(thread->env);
-*/
-
-}
-
-void mthread_init_environment(mthread_callback func){
-/*
-        getcontext(&mthread_ended_env);
-        mthread_ended_env.uc_stack.ss_sp = mthread_ended_stack;
-        mthread_ended_env.uc_stack.ss_size = MTHREAD_ENDED_STACK_SIZE;
-
-        makecontext(&mthread_ended_env, func, 0);
-
-        getcontext(&mthread_env);
-*/
+void mthread_init_environment(jmp_buf *freturn_point){
+        mthread_finished = freturn_point;
+        current = NULL;
+        
 }
 
 void mthread_destroy_environment(){
@@ -66,40 +46,89 @@ struct mthread * mthread_new( int id_p, int ticketc_p, int workc_p){
         return thread;
 }
 
-struct mthread * mthread_create(void (*func)()){ 
-        // TODO: Add validations
+/*
+ * Wraps the thread creation and the first call 
+ *
+ */
+static void mthread_signal_helper( int arg )
+{
+        struct mthread *c = current;
+        printf("Signal received: function f(%d)\n", c->id);
 
-        struct mthread *thread = malloc(sizeof(struct mthread));
-        assert(thread != NULL);
+        if (sigsetjmp(*(c->env), 1)){
+                printf("Calling the function f(%d)\n", c->id);
+                // Call the function
+                c->func(c->id);
+                
+                printf("Calling the callback: function f(%d)\n", c->id);
+                // Call the callback function
+                c->callback(c);
 
-        /*
-        // Create the stack for this thread
-        char *stack = malloc(MTHREAD_STACK_SIZE * sizeof(char));
-        
-        thread->env = malloc(sizeof(ucontext_t));
-        assert(thread->env != NULL);
-
-        // Initialize the thread context
-        getcontext(thread->env);
-        */
-        /*
-         * Changing the thread context to use the new stack
-         * and to point to the function
-         */
-        /*
-        thread->env->uc_stack.ss_sp = stack;
-        thread->env->uc_stack.ss_size = MTHREAD_STACK_SIZE * sizeof(char);
-        thread->env->uc_link = &mthread_ended_env; // Context for thread ended
-        makecontext(thread->env, func, 0);
-        */
-        // Return the created thread
-        return thread;
+                printf("Jumping to the return point: function f(%d)\n", c->id);
+                // Jump to the return point
+                siglongjmp(*mthread_finished, 1);
+                
+        } else { 
+                printf("Returning from first call to function f(%d)\n", c->id);
+                /*
+                 * Return inmediately but leaving the function on the stack 
+                 */
+                siglongjmp(mthread_create_env, 1);
+        }
 }
 
-void mthread_run(struct mthread *thread){
+/*
+ * Creates a new stack
+ */
+static stack_t * create_new_stack(){
+        stack_t *stack = malloc(sizeof(stack_t));
+        
+        // Create the new stack
+        stack->ss_flags = 0;
+        stack->ss_size = MTHREAD_STACK_SIZE;
+        stack->ss_sp = malloc(MTHREAD_STACK_SIZE);
+
+        return stack;
+}
+
+struct mthread * mthread_init(struct mthread *thread, void (*func)(), mthread_callback callback){ 
         // TODO: Add validations
 
-        //swapcontext(&mthread_env, thread->env);
+        printf("Starting thread %d creation\n", thread->id);
+        struct sigaction sa;
+
+        // Create the stack
+        stack_t *stack = create_new_stack();
+
+        // Prepare the signal to be handle in the new stack
+        sigaltstack(stack, 0);
+        sa.sa_handler = &mthread_signal_helper;
+        sa.sa_flags = SA_ONSTACK;
+        sigemptyset(&sa.sa_mask );
+        sigaction(SIGUSR1, &sa, 0);
+
+        if (0 == sigsetjmp(mthread_create_env, 1)){
+                printf("Initializing thread %d\n", thread->id);
+
+                // Set the thread to current to be read on signal handler
+                current = thread;
+
+                // Initialize the thread info
+                current->func = func;
+                current->cvalue = 0;
+                current->stack  = stack;
+                current->env = malloc(sizeof(jmp_buf));
+                current->callback = callback;
+
+                printf("Signal raised\n");
+                // To trigger the signal
+                raise(SIGUSR1);
+                printf("After signal raised\n");
+        }
+
+        printf("Finished thread %d creation\n", thread->id);
+
+        return thread;
 }
 
 struct mthread * mthread_free(struct mthread * thread){

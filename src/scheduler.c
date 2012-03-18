@@ -15,7 +15,8 @@ struct mthread * scheduler_next(struct config_info *config){
         // TODO: Implement Lottery scheduling
         // Temp implementation (Round-robin)
         struct mthread * current = config->current;
-        int pos = list->thread_indexs[current->id];
+
+        int pos = current != NULL ? list->thread_indexs[current->id] : -1;
 
         if (pos + 1 < list->count){
                 result = list->threads[pos + 1];

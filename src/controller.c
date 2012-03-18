@@ -4,6 +4,8 @@
 #include "mthread_list.h"
 #include "iinterface.h"
 #include "scheduler.h"
+#include "iinterface.h"
+#include "mheap.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,32 +23,42 @@ jmp_buf wfinished;
 // Configuration info
 struct config_info * cinfo;
 
-// For test purposes
-int finisheds[2];
-int finished = 0;
-int started = 0;
+// Thread return point 
+static jmp_buf *mthread_finished;
 
 // Alarm interval (quantum)
 struct itimerval timer_interval;
+
+// Thread just finished working
+static struct mthread * fthread;
+
+static void yield_jump(){
+        //printf("New thread just to be resumed\n");
+        // First call
+        struct mthread * next = scheduler_next(cinfo);
+        
+        if (next != NULL){ // Next thread founded
+                cinfo->current = next;
+                // Notify the change
+                running_thread_changed(next->id);
+                siglongjmp(*(next->env), 1);
+        } else { // We Finished processing
+                // Jump to the finished point
+                siglongjmp(wfinished, 1);
+        }
+}
 
 /*
  * Function for a thread to release the processor
  */
 void yield(){
-        if (0 == sigsetjmp(*(cinfo->current->env), 1)){
-                // First call
-                struct mthread * next = scheduler_next(cinfo);
-
-                if (next != NULL){ // Next thread founded
-                        cinfo->current = next;
-                        siglongjmp(*(next->env), 1);
-                } else { // We Finished processing
-                        // Jump to the finished point
-                        siglongjmp(wfinished, 1);
-                }
+        if (!cinfo->running){
+                cinfo->current = NULL;
+                cinfo->running = 1;
+                yield_jump();
+        } else if (0 == sigsetjmp(*(cinfo->current->env), 1)){
+                yield_jump();
         }
-        
-
 }
 
 /*
@@ -56,6 +68,7 @@ void yield(){
  */
 void calc_function(int thread_id){
         unsigned long long i = 0;
+        unsigned long long j = 0;
         long double pi = 0;
         long double divd = 1;
         long double sig = 1;
@@ -65,6 +78,7 @@ void calc_function(int thread_id){
         unsigned long long w = 0;
         int k = 0;
 
+        j = 0;
         while (w < thread->workc){
                 for (k = 0; k < WORKING_UNIT; k++){
                         pi += sig * ((long double)1/divd); 
@@ -72,6 +86,7 @@ void calc_function(int thread_id){
                         divd += 2;
                         sig *= -1;
                         i++;
+                        j++;
                         
                         /*
                          * Yield the processor if not preemtive scheduling and
@@ -81,32 +96,27 @@ void calc_function(int thread_id){
                          * way is simple to undertand and, any way, the idea is
                          * to increase the processing load. 
                          */
-                        if (!cinfo->is_preemptive && i > thread->ticketc * cinfo->quantum){
+                        if (!cinfo->is_preemptive && j > thread->ticketc * cinfo->quantum){
+                                j = 0;
+                                //thread_value_changed(thread->id, thread->cvalue, WORKING_UNIT * thread->workc, i);
                                 yield();
                         }
                 }
+
+                w++;
         }
 }
 
 /*
  * Handles the logic for thread ending
  */
-void thread_ended(){
+void thread_ended(struct mthread * thread){
         // TODO: Implement thread ending logic        
-        printf("Thread finished\n");
+        printf("Thread %d finished: result = %Lf\n", thread->id, thread->cvalue);
 
-        mthread_free(cinfo->current);
-
-       finisheds[cinfo->current->id] = 1;
-
-       finished = finisheds[0] + finisheds[1] > 1 ? 1 : 0; 
-
-       if (finished){
-                timer_interval.it_value.tv_usec = 0;
-       }
+        fthread = thread;
 }
 
-int k = 0;
 void controller_alarm_handler(int sig){
         // TODO: Implement alarm logic
         /*
@@ -143,52 +153,99 @@ static void set_timer(int quantum){
         sigaction (SIGALRM, &act, 0);
 }
 
-void controller_init(){
-        printf("Controller initialized;\n");
+static void init_threads(){
+        int i;
 
-        // Load the configuration
-        cinfo = config_handler_load();
+        for (i = 0; i < cinfo->thread_list->count; i++){
+                mthread_init(cinfo->thread_list->threads[i], &calc_function, &thread_ended);
+        }
+}
 
+static void print_loaded_info(){
         printf("Configuration readed: is_preemptive = %d; quantum = %d\n", cinfo->is_preemptive, cinfo->quantum);
         int i;
         for (i = 0; i < cinfo->thread_list->count; i++){
-                printf("Thread: id =%d; tickets = %d; fticket = %d; work = %d\n",
+                printf("Thread: id =%d; index = %d; tickets = %d; fticket = %d; work = %ld\n",
                                 cinfo->thread_list->threads[i]->id,
+                                cinfo->thread_list->thread_indexs[cinfo->thread_list->threads[i]->id],
                                 cinfo->thread_list->threads[i]->ticketc,
                                 cinfo->thread_list->threads[i]->fticket,
                                 cinfo->thread_list->threads[i]->workc);
         }
+}
 
-        // Initialize the timer
-        set_timer(cinfo->quantum);
+void controller_init(){
+        printf("Starting Controller initialization\n");
+
+        mthread_finished = malloc(sizeof(jmp_buf));
+
+        // Load the configuration
+        cinfo = config_handler_load();
+
+        // Indicate that there is any thread running
+        cinfo->running = 0;
+
+        print_loaded_info();
 
         // Initialize thread environment
-        //mthread_init_environment(thread_ended);
+        mthread_init_environment(&wfinished);//mthread_finished);
 
+        // Initialize the threads
+        init_threads();
         
-        // Test thread creation
-        //threads = malloc(2 * sizeof(struct mthread *));
+        if (!cinfo->is_preemptive){
+                // Initialize the timer
+                set_timer(cinfo->quantum);
+        }
         
-        //threads[0] = mthread_create(calc_function);
-        //threads[1] = mthread_create(calc_function);
-        //current = threads[0];
-        
-        //finished = 0;
-        //memset(finisheds, 0, 2 + sizeof(int));
-
+        printf("Finished controller initialization\n");
 }
 
 void controller_start(){
-        //mthread_run(current);
+        printf("Starting to run threads\n");
 
+        if (cinfo->is_preemptive){
+                // Start timer
+                setitimer(ITIMER_REAL, &timer_interval, NULL);
+        }
 
-        // Start timer
-        //setitimer(ITIMER_REAL, &timer_interval, NULL);
+        if (0 == sigsetjmp(wfinished, 1)){
+                yield();
+        } else { 
+                while (cinfo->thread_list->count > 0){
+                        // Indicate that there is no thread running
+                        cinfo->running = 0;
+                        cinfo->current = NULL;
 
-        //while(!finished);
+                        // Remove the thread from the list
+                        mheap_remove(cinfo->thread_list, fthread->id);
+
+                        // Release the resources allocated by this thread
+                        mthread_free(fthread);
+
+                        if (0 == sigsetjmp(wfinished, 1)){
+                                yield();
+                        }
+                } 
+
+                // All threads finished
+                printf("All threads finished\n");
+        }
+        printf("Finished running threads\n");
 }
 
 void controller_end(){
         // Destroy the thread handling environment
         //mthread_destroy_environment();
+}
+
+/************************************************************
+ * This section needs to be removed from here
+ ************************************************************/
+void running_thread_changed(int thread_id){
+        printf("Now running thread %d\n", thread_id);
+}
+
+void thread_value_changed(int thread_id, long double nvalue, unsigned long long total, unsigned long long actual){
+        printf("Thread %d (%llu / %llu * 100 = %%%Lf) = %Lf\n", thread_id, actual, total, (long double)actual / (long double)total * 100, nvalue);
 }
