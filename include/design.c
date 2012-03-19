@@ -1,5 +1,6 @@
 #include <gtk/gtk.h>
 
+//Estructura del ProgressBar
 typedef struct _ProgressData {
     GtkWidget *window;
     GtkWidget *pbar[8];
@@ -7,8 +8,7 @@ typedef struct _ProgressData {
 	int id;
 } ProgressData;
 
-/* Update the value of the progress bar so that we get
- * some movement */
+/* Actualiza el Valor del ProgressBar */
 gint progress_timeout( gpointer data )
 {
     gfloat new_val;
@@ -23,22 +23,11 @@ gint progress_timeout( gpointer data )
     if (new_val > adj->upper)
       new_val = adj->upper;
 
-    /* Set the new value */
+    /* Setear el nuevo Valor */
     gtk_progress_set_value (GTK_PROGRESS (data), new_val);
 
-    /* As this is a timeout function, return TRUE so that it
-     * continues to get called */
     return(TRUE);
 } 
-
-/* Callback that toggles the text display within the progress
- * bar trough */
-void toggle_show_text( GtkWidget    *widget,
-                       ProgressData *pdata )
-{
-    gtk_progress_set_show_text (GTK_PROGRESS (pdata->pbar),
-                                GTK_TOGGLE_BUTTON (widget)->active);
-}
 
 /* Callback that toggles the continuous mode of the progress
  * bar */
@@ -49,7 +38,7 @@ void set_continuous_mode( GtkWidget    *widget,
                                     GTK_PROGRESS_CONTINUOUS);
 }
 
-/* Clean up allocated memory and remove the timer */
+/* Limpiar memoria asignada y remover Timer */
 void destroy_progress( GtkWidget     *widget,
                        ProgressData *pdata)
 {
@@ -61,7 +50,7 @@ void destroy_progress( GtkWidget     *widget,
 }
 
 
-
+/* Crear ProgressBar */
 void create_progressBar(ProgressData *pdata, 
                         GtkWidget *vbox, int id){
 	GtkWidget *align;
@@ -73,10 +62,10 @@ void create_progressBar(ProgressData *pdata,
 	adj = (GtkAdjustment *) gtk_adjustment_new (0, 1, 150, 0, 0, 0);
 	pdata->pbar[id] = gtk_progress_bar_new_with_adjustment (adj);
 
-	/* Here the values of progress Bar */
-	gtk_progress_bar_set_text(GTK_PROGRESS (pdata->pbar[id]),
-		                      "%v from [%l-%u] (=%p%%)");
-							
+    /* Valores del ProgressBar */
+    gtk_progress_bar_set_text(GTK_PROGRESS (pdata->pbar[id]),
+		                      "%Texto Aki");
+
     gtk_container_add (GTK_CONTAINER (align), pdata->pbar[id]);
 	pdata->id = id;
     gtk_widget_show(pdata->pbar[id]);
@@ -89,12 +78,7 @@ void create_progressBar(ProgressData *pdata,
 		gtk_widget_show(align);	
 }
 
-typedef struct _progBar {
-	int id;
-	ProgressData *pBar;
-} progBar;
-
-	ProgressData *pdata;
+    ProgressData *pdata;
     GtkWidget *separator;
     GtkWidget *table;
     GtkWidget *button;
@@ -104,8 +88,6 @@ typedef struct _progBar {
 int main( int   argc,
           char *argv[])
 {
-	
-
     gtk_init (&argc, &argv);
 
     /* Allocate memory for the data that is passwd to the callbacks */
@@ -125,22 +107,24 @@ int main( int   argc,
     gtk_container_add (GTK_CONTAINER (pdata->window), vbox);
     gtk_widget_show(vbox);
 
-	/* Here create the progress Bars */
+	/* Crear la cantidad de ProgressBar que se ocupe, de momento hay 8 iniciales */
 	int i;
 	for(i=1;i<=8;i++){
 		create_progressBar(pdata,vbox,i);
 	}
+
+	/* linea separadora */
 	separator = gtk_hseparator_new ();
     gtk_box_pack_start (GTK_BOX (vbox), separator, FALSE, FALSE, 0);
     gtk_widget_show(separator);
 	
-    /* rows, columns, homogeneous */
+    /* Tabla de contenido */
     table = gtk_table_new (2, 3, FALSE);
     gtk_box_pack_start (GTK_BOX (vbox), table, FALSE, TRUE, 0);
     gtk_widget_show(table);
 
        
-    /* Add a button to exit the program */
+    /* Boton de Close */
     button = gtk_button_new_with_label ("close");
     gtk_signal_connect_object (GTK_OBJECT (button), "clicked",
                                (GtkSignalFunc) gtk_widget_destroy,
