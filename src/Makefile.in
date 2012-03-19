@@ -23,7 +23,7 @@ includes	= $(wildcard ../include/*.h)
 sources		= $(wildcard *.c)
 
 $(package): ${sources} ${includes}
-	$(CC) -I. -I$(srcdir) -I.. -I../include $(CFLAGS) -o $@ ${sources}
+	$(CC) -I. -I$(srcdir) -I.. -I../include `pkg-config --libs --cflags gtk+-2.0` $(CFLAGS) -o $@ ${sources}
 
 Makefile: Makefile.in ../config.status
 	cd .. && ./config.status src/$@
