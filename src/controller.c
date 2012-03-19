@@ -35,16 +35,35 @@ static struct mthread * fthread;
 
 static void yield_jump(){
         printf("New thread just to be resumed\n");
+        
         // First call
         struct mthread * next = scheduler_next(cinfo);
         printf("Returning from scheduler: %ld\n", (long)next);
         
         if (next != NULL){ // Next thread founded
+                 
+                // Update the interface
+                if (cinfo->current != NULL){
+                        thread_value_changed(cinfo->current->id, cinfo->current->cvalue, 
+                                WORKING_UNIT * cinfo->current->workc, cinfo->current->worku);
+                }
+
                 cinfo->current = next;
+
                 // Notify the change
                 running_thread_changed(next->id);
+
+                // Restart the timer
+                setitimer(ITIMER_REAL, &timer_interval, NULL);
+                
                 siglongjmp(*(next->env), 1);
         } else { // We Finished processing
+                // Update the interface
+                if (cinfo->current != NULL){
+                        thread_value_changed(cinfo->current->id, cinfo->current->cvalue, 
+                                WORKING_UNIT * cinfo->current->workc, cinfo->current->worku);
+                }
+                
                 // Jump to the finished point
                 siglongjmp(wfinished, 1);
         }
@@ -71,7 +90,6 @@ void yield(){
  * = 4 * (1 - 1/3 + 1/5 - 1/7 + 1/9 - 1/11 ... + (((-1)^n)/(2n + 1)))
  */
 void calc_function(int thread_id){
-        unsigned long long i = 0;
         unsigned long long j = 0;
         long double pi = 0;
         long double divd = 1;
@@ -82,6 +100,7 @@ void calc_function(int thread_id){
         unsigned long long w = 0;
         int k = 0;
 
+        thread->worku = 0; 
         j = 0;
         while (w < thread->workc){
                 for (k = 0; k < WORKING_UNIT; k++){
@@ -89,7 +108,7 @@ void calc_function(int thread_id){
                         thread->cvalue = pi * (long double)4;
                         divd += 2;
                         sig *= -1;
-                        i++;
+                        thread->worku++;
                         j++;
                         
                         /*
@@ -102,7 +121,7 @@ void calc_function(int thread_id){
                          */
                         if (!cinfo->is_preemptive && j > thread->ticketc * cinfo->quantum){
                                 j = 0;
-                                //thread_value_changed(thread->id, thread->cvalue, WORKING_UNIT * thread->workc, i);
+                                thread_value_changed(thread->id, thread->cvalue, WORKING_UNIT * thread->workc, thread->worku);
                                 yield();
                         }
                 }
@@ -118,11 +137,13 @@ void thread_ended(struct mthread * thread){
         // TODO: Implement thread ending logic        
         printf("Thread %d finished: result = %Lf\n", thread->id, thread->cvalue);
 
+        thread_value_changed(thread->id, thread->cvalue, WORKING_UNIT * thread->workc, thread->worku);
         fthread = thread;
 }
 
 void controller_alarm_handler(int sig){
         printf("Alarm triggered*****************************************\n");
+
         yield();
 }
 
@@ -132,7 +153,7 @@ static void set_timer(int quantum){
         struct timeval timer_slice;
         struct timeval timer_init;
         timer_slice.tv_sec = 0;
-        timer_slice.tv_usec = quantum * 1000;
+        timer_slice.tv_usec = 0;//quantum * 1000;
         timer_init.tv_sec = 0;
         timer_init.tv_usec =  quantum * 1000;
         timer_interval.it_value = timer_init;
@@ -188,10 +209,25 @@ void controller_init(){
         }
         
         printf("Finished controller initialization\n");
+
+        printf("Launching the interface\n");
+        
+        setup_interface();
+
+        create_ui_main(cinfo->thread_list->count);
+
+        launch_interface();
 }
 
 void controller_start(){
         printf("Starting to run threads\n");
+
+        int i;
+
+        for (i = 0; i < cinfo->thread_list->count; i++){
+                set_tickets_count(cinfo->thread_list->threads[i]->id,
+                                cinfo->thread_list->threads[i]->ticketc);
+        }
 
         // Seed the pseudo-random number generator
         srand(time(0));
@@ -227,6 +263,8 @@ void controller_start(){
                         }
                 } 
 
+                setitimer(ITIMER_REAL, NULL, NULL);
+
                 // All threads finished
                 printf("All threads finished\n");
         }
@@ -236,15 +274,4 @@ void controller_start(){
 void controller_end(){
         // Destroy the thread handling environment
         //mthread_destroy_environment();
-}
-
-/************************************************************
- * This section needs to be removed from here
- ************************************************************/
-void running_thread_changed(int thread_id){
-        printf("Now running thread %d\n", thread_id);
-}
-
-void thread_value_changed(int thread_id, long double nvalue, unsigned long long total, unsigned long long actual){
-        printf("Thread %d (%llu / %llu * 100 = %%%Lf) = %Lf\n", thread_id, actual, total, (long double)actual / (long double)total * 100, nvalue);
 }

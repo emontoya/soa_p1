@@ -25,6 +25,7 @@ struct mthread{
         stack_t *stack; // Stack point where the thread is running
         void (*func)(); // Function to be executed by the thread
         mthread_callback callback; // Function to execute when the thread finished
+        unsigned long long worku; // Current working unit
 };
 
 /*
