@@ -15,5 +15,11 @@ struct config_info{
 
         // Assigned tickets 
         unsigned long long tickets;
+
+        // Indicates if the processing has already started
+        int running;
+
+        // Indicates if the processing has already finished
+        int finished;
 };
 #endif
