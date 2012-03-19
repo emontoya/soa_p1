@@ -53,23 +53,18 @@ struct mthread * mthread_new( int id_p, int ticketc_p, int workc_p){
 static void mthread_signal_helper( int arg )
 {
         struct mthread *c = current;
-        printf("Signal received: function f(%d)\n", c->id);
 
         if (sigsetjmp(*(c->env), 1)){
-                printf("Calling the function f(%d)\n", c->id);
                 // Call the function
                 c->func(c->id);
                 
-                printf("Calling the callback: function f(%d)\n", c->id);
                 // Call the callback function
                 c->callback(c);
 
-                printf("Jumping to the return point: function f(%d)\n", c->id);
                 // Jump to the return point
                 siglongjmp(*mthread_finished, 1);
                 
         } else { 
-                printf("Returning from first call to function f(%d)\n", c->id);
                 /*
                  * Return inmediately but leaving the function on the stack 
                  */
@@ -94,7 +89,6 @@ static stack_t * create_new_stack(){
 struct mthread * mthread_init(struct mthread *thread, void (*func)(), mthread_callback callback){ 
         // TODO: Add validations
 
-        printf("Starting thread %d creation\n", thread->id);
         struct sigaction sa;
 
         // Create the stack
@@ -108,8 +102,6 @@ struct mthread * mthread_init(struct mthread *thread, void (*func)(), mthread_ca
         sigaction(SIGUSR1, &sa, 0);
 
         if (0 == sigsetjmp(mthread_create_env, 1)){
-                printf("Initializing thread %d\n", thread->id);
-
                 // Set the thread to current to be read on signal handler
                 current = thread;
 
@@ -120,13 +112,9 @@ struct mthread * mthread_init(struct mthread *thread, void (*func)(), mthread_ca
                 current->env = malloc(sizeof(jmp_buf));
                 current->callback = callback;
 
-                printf("Signal raised\n");
                 // To trigger the signal
                 raise(SIGUSR1);
-                printf("After signal raised\n");
         }
-
-        printf("Finished thread %d creation\n", thread->id);
 
         return thread;
 }

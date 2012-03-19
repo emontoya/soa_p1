@@ -47,11 +47,6 @@ struct mthread * scheduler_next(struct config_info *config){
 
         // Generate the valid random ticket number
         ticket = (random() % (list->threads[0]->ticketc + list->threads[0]->fticket)) + 1;
-        //ticket = 10;
-        printf("Ticked %ld generated from 1 - (%ld + %lld = %lld)\n", ticket,
-                        list->threads[0]->ticketc,
-                        list->threads[0]->fticket,
-                        list->threads[0]->ticketc + list->threads[0]->fticket);
 
         // Return the ticket owner
         return find_ticket_owner(ticket, list);

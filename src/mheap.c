@@ -123,8 +123,6 @@ struct mthread * mheap_remove(struct mthread_list * list, int thread_id){
         int pos = list->thread_indexs[thread_id];
         struct mthread *thread = list->threads[pos];
 
-        printf("Removing thread %d; pos = %d\n", thread_id, pos);
-
         // Get the last element
         int last  = list->count - 1;
 
@@ -133,7 +131,6 @@ struct mthread * mheap_remove(struct mthread_list * list, int thread_id){
 
         // Substitute the element to delete with  last one
         if (last != pos){ // If we are not removing the last element 
-                printf("Promoting thread %d\n", list->threads[last]->id);
                 // Update the partial sum for the thread to be promoted
                 list->threads[last]->fticket = list->threads[pos]->fticket;
                 // Update the parents for the promoted thread

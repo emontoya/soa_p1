@@ -4,8 +4,6 @@
 
 int main(int argc, char *argv[])
 {
-        printf("Hello world\n");
-
         controller_init();
 
         //controller_start();

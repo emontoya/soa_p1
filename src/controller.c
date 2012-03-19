@@ -34,11 +34,8 @@ struct itimerval timer_interval;
 static struct mthread * fthread;
 
 static void yield_jump(){
-        printf("New thread just to be resumed\n");
-        
         // First call
         struct mthread * next = scheduler_next(cinfo);
-        printf("Returning from scheduler: %ld\n", (long)next);
         
         if (next != NULL){ // Next thread founded
                  
@@ -73,9 +70,7 @@ static void yield_jump(){
  * Function for a thread to release the processor
  */
 void yield(){
-        printf("Yield\n");
         if (!cinfo->running){
-                printf("Yield not running\n");
                 cinfo->current = NULL;
                 cinfo->running = 1;
                 yield_jump();
@@ -134,16 +129,11 @@ void calc_function(int thread_id){
  * Handles the logic for thread ending
  */
 void thread_ended(struct mthread * thread){
-        // TODO: Implement thread ending logic        
-        printf("Thread %d finished: result = %Lf\n", thread->id, thread->cvalue);
-
         thread_value_changed(thread->id, thread->cvalue, WORKING_UNIT * thread->workc, thread->worku);
         fthread = thread;
 }
 
 void controller_alarm_handler(int sig){
-        printf("Alarm triggered*****************************************\n");
-
         yield();
 }
 
@@ -160,7 +150,6 @@ static void set_timer(int quantum){
         timer_interval.it_interval = timer_slice;
         act.sa_handler = controller_alarm_handler;
         sigaction (SIGALRM, &act, 0);
-        printf("Alarm configured*****************************************\n");
 }
 
 static void init_threads(){
@@ -170,9 +159,8 @@ static void init_threads(){
                 mthread_init(cinfo->thread_list->threads[i], &calc_function, &thread_ended);
         }
 }
-
+/*
 static void print_loaded_info(){
-        printf("Configuration readed: is_preemptive = %d; quantum = %d\n", cinfo->is_preemptive, cinfo->quantum);
         int i;
         for (i = 0; i < cinfo->thread_list->count; i++){
                 printf("Thread: id =%d; index = %d; tickets = %ld; fticket = %lld; work = %ld\n",
@@ -183,9 +171,8 @@ static void print_loaded_info(){
                                 cinfo->thread_list->threads[i]->workc);
         }
 }
-
+*/
 void controller_init(){
-        printf("Starting Controller initialization\n");
 
         mthread_finished = malloc(sizeof(jmp_buf));
 
@@ -194,8 +181,6 @@ void controller_init(){
 
         // Indicate that there is any thread running
         cinfo->running = 0;
-
-        print_loaded_info();
 
         // Initialize thread environment
         mthread_init_environment(&wfinished);//mthread_finished);
@@ -208,10 +193,6 @@ void controller_init(){
                 set_timer(cinfo->quantum);
         }
         
-        printf("Finished controller initialization\n");
-
-        printf("Launching the interface\n");
-        
         setup_interface();
 
         create_ui_main(cinfo->thread_list->count);
@@ -220,8 +201,6 @@ void controller_init(){
 }
 
 void controller_start(){
-        printf("Starting to run threads\n");
-
         int i;
 
         for (i = 0; i < cinfo->thread_list->count; i++){
@@ -235,7 +214,6 @@ void controller_start(){
 
         if (0 == sigsetjmp(wfinished, 1)){
                 if (cinfo->is_preemptive){
-                        printf("Starting the alarm*****************************************\n");
                         // Start timer
                         setitimer(ITIMER_REAL, &timer_interval, NULL);
 
@@ -252,8 +230,6 @@ void controller_start(){
                         // Remove the thread from the list
                         mheap_remove(cinfo->thread_list, fthread->id);
 
-                        print_loaded_info();
-
                         // Release the resources allocated by this thread
                         mthread_free(fthread);
 
@@ -266,9 +242,7 @@ void controller_start(){
                 setitimer(ITIMER_REAL, NULL, NULL);
 
                 // All threads finished
-                printf("All threads finished\n");
         }
-        printf("Finished running threads\n");
 }
 
 void controller_end(){

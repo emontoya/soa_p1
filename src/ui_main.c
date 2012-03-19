@@ -63,10 +63,10 @@ void static create_wthreads(int threads_count, GtkWidget *vbox){
                 gtk_progress_bar_set_text(GTK_PROGRESS_BAR(pbar), "%0");
                 gtk_widget_show(pbar);
 
-                label = gtk_label_new(NULL);
-                gtk_label_set_markup(GTK_LABEL(label), "<b>2 * arccos(0) = </b>");
-                gtk_box_pack_start (GTK_BOX (hbox), label, TRUE, TRUE, 1);
-                gtk_widget_show(label);
+                //label = gtk_label_new(NULL);
+                //gtk_label_set_markup(GTK_LABEL(label), "<b>2 * arccos(0) = </b>");
+                //gtk_box_pack_start (GTK_BOX (hbox), label, TRUE, TRUE, 1);
+                //gtk_widget_show(label);
 
                 label = gtk_label_new(NULL);
                 gtk_label_set_justify(GTK_LABEL(label), GTK_JUSTIFY_LEFT);
@@ -88,8 +88,6 @@ void application_started (gpointer user_data, GtkWidget *widget){
         gtk_widget_queue_draw (button);
         while (gtk_events_pending ())
                 gtk_main_iteration ();
-
-        printf("Application started\n");
         
         // Start the rocessing
         controller_start();
@@ -141,7 +139,6 @@ void running_thread_changed(int thread_id){
         GtkWidget *ccheck;
         GtkWidget *ncheck;
 
-        printf("Now running thread %d\n", thread_id);
         if (tcurrent != -1){
                 ccheck = threads[tcurrent]->check;
                 //gtk_widget_set_sensitive ((GtkWidget*) ccheck, TRUE);
