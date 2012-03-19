@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
+#include <time.h>
 #include <sys/time.h>
 #include <string.h>
 #include <setjmp.h>
@@ -33,9 +34,10 @@ struct itimerval timer_interval;
 static struct mthread * fthread;
 
 static void yield_jump(){
-        //printf("New thread just to be resumed\n");
+        printf("New thread just to be resumed\n");
         // First call
         struct mthread * next = scheduler_next(cinfo);
+        printf("Returning from scheduler: %ld\n", (long)next);
         
         if (next != NULL){ // Next thread founded
                 cinfo->current = next;
@@ -52,7 +54,9 @@ static void yield_jump(){
  * Function for a thread to release the processor
  */
 void yield(){
+        printf("Yield\n");
         if (!cinfo->running){
+                printf("Yield not running\n");
                 cinfo->current = NULL;
                 cinfo->running = 1;
                 yield_jump();
@@ -150,7 +154,7 @@ static void print_loaded_info(){
         printf("Configuration readed: is_preemptive = %d; quantum = %d\n", cinfo->is_preemptive, cinfo->quantum);
         int i;
         for (i = 0; i < cinfo->thread_list->count; i++){
-                printf("Thread: id =%d; index = %d; tickets = %d; fticket = %d; work = %ld\n",
+                printf("Thread: id =%d; index = %d; tickets = %ld; fticket = %lld; work = %ld\n",
                                 cinfo->thread_list->threads[i]->id,
                                 cinfo->thread_list->thread_indexs[cinfo->thread_list->threads[i]->id],
                                 cinfo->thread_list->threads[i]->ticketc,
@@ -189,14 +193,20 @@ void controller_init(){
 void controller_start(){
         printf("Starting to run threads\n");
 
-        if (cinfo->is_preemptive){
-                printf("Starting the alarm*****************************************\n");
-                // Start timer
-                setitimer(ITIMER_REAL, &timer_interval, NULL);
-        }
+        // Seed the pseudo-random number generator
+        srand(time(0));
+
 
         if (0 == sigsetjmp(wfinished, 1)){
-                yield();
+                if (cinfo->is_preemptive){
+                        printf("Starting the alarm*****************************************\n");
+                        // Start timer
+                        setitimer(ITIMER_REAL, &timer_interval, NULL);
+
+                        while(1); // Wait for the timer
+                } else {
+                        yield();
+                }
         } else { 
                 while (cinfo->thread_list->count > 0){
                         // Indicate that there is no thread running
@@ -206,8 +216,11 @@ void controller_start(){
                         // Remove the thread from the list
                         mheap_remove(cinfo->thread_list, fthread->id);
 
+                        print_loaded_info();
+
                         // Release the resources allocated by this thread
                         mthread_free(fthread);
+
 
                         if (0 == sigsetjmp(wfinished, 1)){
                                 yield();

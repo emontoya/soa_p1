@@ -19,8 +19,8 @@ struct mthread{
         int id; // thread identifyer (consecutive)
         long double cvalue; // Current calculated value (We add this here for simplicity)
         jmp_buf *env;   // To store the thread state
-        int ticketc; // Tickets quantity
-        int fticket; // Accumulated ticket sum or firts ticket number
+        long ticketc; // Tickets quantity
+        long long fticket; // Accumulated ticket sum or firts ticket number
         long workc;  // Assigned work; 
         stack_t *stack; // Stack point where the thread is running
         void (*func)(); // Function to be executed by the thread

@@ -13,9 +13,6 @@ struct config_info{
         // Current thread
         struct mthread *current;
 
-        // Assigned tickets 
-        unsigned long long tickets;
-
         // Indicates if the processing has already started
         int running;
 
